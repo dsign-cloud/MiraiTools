@@ -331,7 +331,6 @@ def create_measure_cube(self,context):
     # obj.location = (0, 0, 100)
     # obj.scale = (1, 1, 1)
 
-    
 
     
 PROPS = [
@@ -352,26 +351,31 @@ class OBJECT_PT_exporterMirai(bpy.types.Panel):
         layout = self.layout
         check_collections(self,context)
         
-        boxSetup = layout.box()
-        col1 = boxSetup.column()
-
+        layout.label(text="Minh")
+        minhWf = layout.box()
+        col1 = minhWf.column()
         row = col1.row()
-        row.operator('opr.center_oporigins_operator', text='Apply modifiers')
+        row.operator('opr.add_cube_operator', text='Add measurement cube')
 
+
+        layout.label(text="Long")
+        longWf = layout.box()
+        col2 = longWf.column()
+        row = col2.row()
+        row.operator('opr.center_oporigins_operator', text='Apply modifiers')
         # row = col1.row()
         # row.prop(context.scene, "measure_cube", text="Measure cube")
-
-        row = col1.row()
+        row = col2.row()
         row.operator('opr.center_origins_operator', text='Center origins')
-        
-
-        row = col1.row()
+        layout.label(text="General")
+        boxSetup = layout.box()
+      
+        col3 = boxSetup.column()
+        row = col3.row()
         row.operator('opr.fix_rooms_operator', text='UV reset rooms')
-
-        row = col1.row()
+        row = col3.row()
         row.prop(context.scene, "folder")
-
-        row = col1.row()
+        row = col3.row()
         row.operator('opr.export_mirai_operator', text='Export') 
 
   
@@ -673,8 +677,30 @@ class apply_mod(bpy.types.Operator):
 
         return {'FINISHED'}            # Lets Blender know the operator finished successfully.
 
+class add_cube(bpy.types.Operator):
+    bl_label = "Add cube"
+    bl_idname = "opr.add_cube_operator"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    #Adds a cube in the position 0,0,100
+    def execute(self, context):
+        
+        #Check if the cube exists
+        if "MeasureCube" in bpy.data.objects:
+            #Delete the cube
+            bpy.data.objects.remove(bpy.data.objects["MeasureCube"])
+        
+        bpy.ops.mesh.primitive_cube_add(size=2)
+        cube = bpy.context.object
+        cube.name = "MeasureCube"
+
+        #Moves it to the position 0,0,100
+        cube.location = (0, 0, 100)
+        
+
+        return {'FINISHED'}
 #Register the properties
-CLASSES = [OBJECT_PT_exporterMirai,export_mirai,fix_rooms,center_origins,apply_mod]
+CLASSES = [OBJECT_PT_exporterMirai,export_mirai,fix_rooms,center_origins,apply_mod,add_cube]
 
 def register():
 
