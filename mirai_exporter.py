@@ -409,7 +409,7 @@ def create_measure_cube(self,context):
 
     
 PROPS = [
-    ("folder", bpy.props.StringProperty(name='',default=bpy.path.abspath('//'),description="File path used by the file selector",maxlen=1024,subtype='FILE_PATH')),
+    ("folder", bpy.props.StringProperty(name='',default="",description="File path used by the file selector",maxlen=1024,subtype='FILE_PATH')),
     ("measure_cube",bpy.props.BoolProperty(name="Measure cube", default=False, description="Measure cube")),
 ]
 
