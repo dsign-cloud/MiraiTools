@@ -22,16 +22,45 @@ def check_collections(self,context):
     if 'rooms' not in bpy.data.collections:
         bpy.data.collections.new('rooms')
         bpy.context.scene.collection.children.link(bpy.data.collections['rooms'])
-    
-    # Check if 'raycas_model' collection exists, if not create it
+
+    #create cube
+        bpy.ops.mesh.primitive_cube_add(size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+
+        obj = bpy.context.object
+
+        for obj in bpy.context.selected_objects:
+            obj.name = "Cube"
+
+    #link the cube to "rooms" collection
+            bpy.context.scene.collection.children.link(collection)
+    # our created cube is the active one
+        ob = bpy.context.active_object
+    # Remove object from all collections not used in a scene
+        bpy.ops.collection.objects_remove_all()
+    # add it to our rooms collection
+        bpy.data.collections['rooms'].objects.link(ob)
+        bpy.context.object.show_wire = True
+
+    # Check if 'raycast_model' collection exists, if not create it
     if 'raycast' not in bpy.data.collections:
         bpy.data.collections.new('raycast')
         bpy.context.scene.collection.children.link(bpy.data.collections['raycast'])
-   
-def is_collection_empty(self,conetext,name):
-    if name in bpy.data.collections:
-        if len(bpy.data.collections[name].objects) == 0:
-            return True
+    #create raycast cube
+        bpy.ops.mesh.primitive_cube_add(size=2, enter_editmode=False, align='WORLD', location=(0, 0, 0), scale=(1, 1, 1))
+    #link raycast cube to "raycast" collection
+        bpy.context.scene.collection.children.link(collection)
+    # our created cube is the active one
+        ob = bpy.context.active_object
+    # Remove object from all collections not used in a scene
+        bpy.ops.collection.objects_remove_all()
+    # add it to our raycast collection
+        bpy.data.collections['raycast'].objects.link(ob)
+        obj = bpy.context.object
+
+        for obj in bpy.context.selected_objects:
+            obj.name = "raycast"
+            
+        bpy.context.object.show_wire = True
     return False
 
 def raycast_screenshot(self,context):
