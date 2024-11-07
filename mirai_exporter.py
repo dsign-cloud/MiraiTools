@@ -409,7 +409,7 @@ def create_measure_cube(self,context):
 
     
 PROPS = [
-    ("folder", bpy.props.StringProperty(name='',default=os.getcwd(),description="File path used by the file selector",maxlen=1024,subtype='FILE_PATH')),
+    ("folder", bpy.props.StringProperty(name='',default=bpy.path.abspath('//'),description="File path used by the file selector",maxlen=1024,subtype='FILE_PATH')),
     ("measure_cube",bpy.props.BoolProperty(name="Measure cube", default=False, description="Measure cube")),
 ]
 
@@ -483,6 +483,14 @@ class export_mirai(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
+    # Get the path where the blend file is located
+        basedir = bpy.path.abspath('//')
+
+    # Get file name:
+        filename = bpy.path.basename(bpy.context.blend_data.filepath)
+
+    # Remove .blend extension:
+        filename = os.path.splitext(filename)[0]
         
         #PREVIOUS COMPROBATIONS -----------------
 
@@ -580,7 +588,7 @@ class export_mirai(bpy.types.Operator):
                 obj.select_set(True)
             bpy.data.collections["raycast"].objects[0].select_set(True)
 
-            bpy.ops.export_scene.gltf(  filepath= bpy.context.scene.folder +file_name+ ".glb",
+            bpy.ops.export_scene.gltf(  filepath=os.path.join(basedir+'Hotel_'+filename+'_rooms'),
                                         check_existing=False,
                                         # export_import_convert_lighting_mode='SPEC',
                                         # gltf_export_id='', 
@@ -743,7 +751,7 @@ class export_mirai(bpy.types.Operator):
                     for obj in bpy.data.collections["rooms"].objects:
                             obj.select_set(True)
 
-                    bpy.ops.export_scene.gltf(  filepath= bpy.context.scene.folder +file_name+ ".glb",
+                    bpy.ops.export_scene.gltf(  filepath=os.path.join(basedir+'Hotel_'+filename+'_rooms'),
                                                     check_existing=False,
                                                     # export_import_convert_lighting_mode='SPEC',
                                                     # gltf_export_id='', 
