@@ -155,6 +155,7 @@ def restoreView_and_save(self,context):
                         space.overlay.show_object_origins = True
                         space.overlay.show_outline_selected = True
                         space.shading.show_xray = False
+                        space.overlay.show_floor = True
         
         
     # Pack all resources
@@ -436,11 +437,12 @@ class OBJECT_PT_exporterMirai(bpy.types.Panel):
         longWf = layout.box()
         col2 = longWf.column()
         row = col2.row()
-        row.operator('opr.center_oporigins_operator', text='Apply modifiers')
+        row.operator('opr.initial_setup', text='Initial setup')
         row = col2.row()
         row.operator('opr.center_origins_operator', text='Center origins')
         row = col2.row()
-        row.operator('opr.initial_setup', text='Initial setup')
+        row.operator('opr.center_oporigins_operator', text='Apply modifiers')
+
 
         layout.label(text="General")
         boxSetup = layout.box()
@@ -966,8 +968,8 @@ class apply_mod(bpy.types.Operator):
     def execute(self, context):        # execute() is called when running the operator.
 
         # The original script
-        # obj = bpy.context.object
-        obj = bpy.context.active_object 
+        obj = bpy.context.object  #this plug in have to use this code to work
+        # obj = bpy.context.active_object  --> this plugin will not work with this
         #Hide all objects but the selected one
         for obj in bpy.data.objects:
             if obj != bpy.context.active_object:
