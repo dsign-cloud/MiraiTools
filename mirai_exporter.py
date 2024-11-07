@@ -686,7 +686,7 @@ class export_mirai(bpy.types.Operator):
                                         export_hierarchy_full_collections=False, 
                                         export_extra_animations=False, 
                                         filter_glob='*.glb',)
-            
+    
             self.report({'INFO'}, "Exported to " + bpy.context.scene.folder + file_name+".glb")
             return {'FINISHED'}
         else:
