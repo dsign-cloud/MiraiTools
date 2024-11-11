@@ -387,15 +387,6 @@ def create_measure_cube(self,context):
     bpy.context.collection.objects.link(bpy.data.objects["MeasureCube"])
     return {'FINISHED'}
     
-def create_measure_plane(self,context):
-    bpy.ops.mesh.primitive_plane_add(size=bpy.context.scene.measure_plane.float, enter_editmode=False, align='WORLD', location=(0, 0, 0))
-    plane = bpy.context.object
-    plane.name = "MeasurePlane"
-
-    # Link the object to the scene collection
-    bpy.context.collection.objects.link(bpy.data.objects["MeasurePlane"])
-    return {'FINISHED'}
-
 
 
     # # Create a new mesh
@@ -421,7 +412,6 @@ def create_measure_plane(self,context):
     
 PROPS = [
     ("folder", bpy.props.StringProperty(name='',default="",description="File path used by the file selector",maxlen=1024,subtype='FILE_PATH')),
-    ("measure_plane", bpy.props.StringProperty(name='Measure plane size',default="",description="Size of the plane used to measure")),
     ("measure_cube",bpy.props.BoolProperty(name="Measure cube", default=False, description="Measure cube")),
 ]
 
@@ -449,10 +439,6 @@ class OBJECT_PT_exporterMirai(bpy.types.Panel):
         longWf = layout.box()
         col2 = longWf.column()
         row = col2.row()
-        row.prop(context.scene, "measure_plane")
-        row = col2.row()
-        row.operator('opr.measure_plane', text='Create measure plane')
-        row = col2.row()
         row.operator('opr.initial_setup', text='Initial setup')
         row = col2.row()
         row.operator('opr.center_origins_operator', text='Center origins')
@@ -475,16 +461,6 @@ class OBJECT_PT_exporterMirai(bpy.types.Panel):
     
 
 #METHODS----------------- 
-
-class Measure_plane(bpy.types.Operator):
-    """Create a plane for measure"""      # Use this as a tooltip for menu items and buttons.
-    bl_idname = "opr.measure_plane"        # Unique identifier for buttons and menu items to reference.
-    bl_label = "Measure Plane"         # Display name in the interface.
-    bl_options = {'REGISTER', 'UNDO'}  # Enable undo for the operator.
-
-    def execute(self, context):        # execute() is called when running the operator.
-        create_measure_plane(self,context)
-        return{'FINISHED'}            # Lets Blender know the operator finished successfully.
 
 class Initial_setup(bpy.types.Operator):
     """Create initial rooms and raycast cubes"""      # Use this as a tooltip for menu items and buttons.
@@ -1069,7 +1045,7 @@ class add_cube(bpy.types.Operator):
 
         return {'FINISHED'}
 #Register the properties
-CLASSES = [OBJECT_PT_exporterMirai,export_mirai,fix_rooms,center_origins,apply_mod,add_cube,Initial_setup,Measure_plane]
+CLASSES = [OBJECT_PT_exporterMirai,export_mirai,fix_rooms,center_origins,apply_mod,add_cube,Initial_setup]
 
 def register():
 
