@@ -320,6 +320,8 @@ def check_collections(self,context):
         bpy.ops.collection.objects_remove_all()
         # add it to our specific collection
         bpy.data.collections['rooms'].objects.link(ob)
+        #show wires
+        bpy.context.object.show_wire = True
         # Get material
         mat = bpy.data.materials.get("GreenEdgeMaterial")
         if ob.data.materials:
