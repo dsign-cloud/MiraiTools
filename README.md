@@ -13,7 +13,7 @@
 1. Clone or download this repository.
 2. In Blender, go to **`Edit > Preferences > Add-ons > Install…`**.
 3. Select the downloaded `mirai_exporter.py` file.
-4. Enable the add-on in the Blender add-ons list.
+4. Enable the add-on in the Blender add-ons list as "Mirai Export".
 
 ## Usage
 1. Open your project in Blender.
