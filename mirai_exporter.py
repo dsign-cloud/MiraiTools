@@ -41,7 +41,7 @@ def raycast_screenshot(self,context):
     bpy.context.scene.view_settings.look = 'Medium High Contrast'
 
     # Get the path where the blend file is located
-    basedir = bpy.path.abspath('//')
+    basedir = bpy.context.scene.folder
 
     # Get file name:
     filename = bpy.path.basename(bpy.context.blend_data.filepath)
@@ -107,8 +107,18 @@ def raycast_screenshot(self,context):
 
 def rooms_screenshot(self,context):
     
+    file_path = bpy.path.basename(bpy.context.blend_data.filepath)
+    file_name = os.path.basename(file_path)
+    if file_name == "":
+        self.report({'ERROR'}, "Save the file before exporting")
+        return {'FINISHED'}
+    else:
+        #Remove the extension
+        file_name = os.path.splitext(file_name)[0]
+    
     # Get the path where the blend file is located
-    basedir = bpy.path.abspath('//')
+    # basedir = bpy.path.abspath('//')
+    basedir = bpy.context.scene.folder
 
     # Get file name:
     filename = bpy.path.basename(bpy.context.blend_data.filepath)
@@ -140,6 +150,9 @@ def rooms_screenshot(self,context):
                         space.overlay.show_statvis = False
 
     # Hide the raycast
+    # Set output path
+    
+    bpy.context.scene.render.filepath = os.path.join(basedir+'Screenshot_'+filename+'_Rooms')
 
     for collection in bpy.data.collections:
         if collection.name == "raycast":
@@ -151,8 +164,8 @@ def rooms_screenshot(self,context):
     bpy.context.view_layer.layer_collection.children["Collection"].hide_viewport = False
             
     # Take Screenshot for Rooms
-    bpy.context.scene.render.filepath = os.path.join(basedir+'Screenshot_'+filename+'_Rooms')
-    bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=True, view_context=True)
+    # bpy.context.scene.render.filepath = os.path.join(basedir+'Screenshot_'+filename+'_Rooms')
+    bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=True, view_context=True,)
 
     return {'FINISHED'}
 
@@ -334,7 +347,7 @@ def create_measure_cube(self,context):
 
     
 PROPS = [
-    ("folder", bpy.props.StringProperty(name='',default=os.getcwd(),description="File path used by the file selector",maxlen=1024,subtype='FILE_PATH')),
+    ("folder", bpy.props.StringProperty(name='',default=os.getcwd(),description="File path used by the file selector",maxlen=1024,subtype='DIR_PATH')),
     ("measure_cube",bpy.props.BoolProperty(name="Measure cube", default=False, description="Measure cube")),
 ]
 
@@ -351,23 +364,24 @@ class OBJECT_PT_exporterMirai(bpy.types.Panel):
         layout = self.layout
         check_collections(self,context)
         
-        layout.label(text="Minh")
-        minhWf = layout.box()
-        col1 = minhWf.column()
-        row = col1.row()
-        row.operator('opr.add_cube_operator', text='Add measurement cube')
-
-
-        layout.label(text="Long")
-        longWf = layout.box()
-        col2 = longWf.column()
-        row = col2.row()
-        row.operator('opr.center_oporigins_operator', text='Apply modifiers')
+        # layout.label(text="Minh")
+        # minhWf = layout.box()
+        # col1 = minhWf.column()
         # row = col1.row()
-        # row.prop(context.scene, "measure_cube", text="Measure cube")
-        row = col2.row()
-        row.operator('opr.center_origins_operator', text='Center origins')
-        layout.label(text="General")
+        # row.operator('opr.add_cube_operator', text='Add measurement cube')
+
+
+        # layout.label(text="Long")
+        # longWf = layout.box()
+        # col2 = longWf.column()
+        # row = col2.row()
+        # row.operator('opr.center_oporigins_operator', text='Apply modifiers')
+        # # row = col1.row()
+        # # row.prop(context.scene, "measure_cube", text="Measure cube")
+        # row = col2.row()
+        # row.operator('opr.center_origins_operator', text='Center origins')
+
+        # layout.label(text="General")
         boxSetup = layout.box()
       
         col3 = boxSetup.column()
@@ -377,9 +391,6 @@ class OBJECT_PT_exporterMirai(bpy.types.Panel):
         row.prop(context.scene, "folder")
         row = col3.row()
         row.operator('opr.export_mirai_operator', text='Export') 
-
-  
-    
 
 #METHODS----------------- 
 
@@ -435,6 +446,11 @@ class export_mirai(bpy.types.Operator):
         else:
             #Remove the extension
             file_name = os.path.splitext(file_name)[0]
+
+        #Folder path check
+        if bpy.context.scene.folder == "":
+            self.report({'ERROR'}, "Please set a folder path to export")
+            return {'FINISHED'}
 
         #-END COMPROBATIONS -----------------
 
