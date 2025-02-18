@@ -559,276 +559,222 @@ class export_mirai(bpy.types.Operator):
     bl_idname = "opr.export_mirai_operator"
     bl_options = {'REGISTER', 'UNDO'}
 
-    def execute(self, context):
+    def execute(self, context):        # execute() is called when running the operator.
+
+        # The original script
+        
     # Get the path where the blend file is located
         basedir = bpy.path.abspath('//')
 
-    # Get file name:
+        # Get file name:
         filename = bpy.path.basename(bpy.context.blend_data.filepath)
 
-    # Remove .blend extension:
+        # Remove .blend extension:
         filename = os.path.splitext(filename)[0]
-        
-        #PREVIOUS COMPROBATIONS -----------------
 
-        #If both "rooms" and "raycast" collection exist
-        if 'raycast' in bpy.data.collections:
-        #Check if the collections are not empty
-            if is_collection_empty(self,context,'rooms'):
-                self.report({'ERROR'}, "No rooms, please move the rooms to the collection 'rooms'")
-            if is_collection_empty(self,context,'raycast'):
-                self.report({'ERROR'}, "No raycast, please move the rooms to the collection 'raycast'")
-            if is_collection_empty(self,context,'rooms') or is_collection_empty(self,context,'raycast'):
-                return {'FINISHED'}
-        
-            #Check for raycast in rooms collection
-                for obj in bpy.data.collections["rooms"].objects:
-                    if obj.data.name == "raycast":
-                        self.report({'ERROR'}, f"""Raycast model "{obj.name}" detected in rooms, please check the collections""")
-                        return {'FINISHED'}
-                    
-        
+        # Set collections for hide/unhide
+        collections = bpy.context.view_layer.layer_collection.children
+        raycast = "raycast"
+        rooms = "rooms"
+        Collection = "Collection"
+
+        # Unhide all
+        def get_outliner_area():
+            if bpy.context.area.type!='OUTLINER':
+                for area in bpy.context.screen.areas:
+                    if area.type == 'OUTLINER':
+                        return area
+
+        area = get_outliner_area()
+        region = next(region for region in area.regions if region.type == "WINDOW")
+
+        with bpy.context.temp_override(area=area, reigon=region):
+            bpy.ops.outliner.unhide_all()    
             
-            #Check raycast name
-            if len(bpy.data.collections["raycast"].objects) != 1:
-                self.report({'ERROR'}, "Only one raycast model allowed, please join all the objects in the collection 'raycast'")
-            else:
-                if bpy.data.collections["raycast"].objects[0].data.name != "raycast":
+                                        #Set up image output
+                                                          
+        bpy.context.scene.display_settings.display_device = 'sRGB'
+        bpy.context.scene.view_settings.view_transform = 'Standard'
+        bpy.context.scene.view_settings.look = 'Medium High Contrast'
+
+                          # if raycast doest not exist, only take rooms screenshot
+        name = "raycast"
+        coll = bpy.data.collections.get(name)
+        if coll is None:
+                                       #rooms Screenshot
+                                                
+                                                
+            # Set up the rooms Screenshot conditions
+            for window in bpy.context.window_manager.windows:
+                for area in window.screen.areas: # iterate through areas in current screen
+                    if area.type == 'VIEW_3D':
+                        for space in area.spaces: # iterate through spaces in current VIEW_3D area
+                            if space.type == 'VIEW_3D': # check if space is a 3D view
+                                space.shading.type = 'SOLID'
+                                space.shading.light = 'FLAT'
+                                space.shading.color_type =  'TEXTURE'
+                                space.shading.show_xray = False
+                                space.overlay.show_overlays = False
+
+            # Hide the raycast
+            bpy.context.view_layer.layer_collection.children["rooms"].hide_viewport = False
+            bpy.context.view_layer.layer_collection.children["Collection"].hide_viewport = False
+            for collection in collections:
+                if collection.name == raycast :
+                    collection.hide_viewport = True
                     
-                    #Version that stops
-                    # self.report({'ERROR'}, "Raycast model must be named 'raycast'")
-                    # return {'FINISHED'}
+            # Take Screenshot for rooms
+            bpy.context.scene.render.filepath = os.path.join(basedir+'Screenshot_'+filename+'_rooms');
+            bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=True, view_context=True);
 
-                    #Version that renames
-                    for mesh in bpy.data.meshes:
-                        if mesh.name == "raycast":
-                            bpy.data.meshes.remove(mesh)
-
-                    bpy.data.collections["raycast"].objects[0].data.name = "raycast"
-                    bpy.data.collections["raycast"].objects[0].name = "raycast"
-
-            #file save check
-            file_path = bpy.path.basename(bpy.context.blend_data.filepath)
-            file_name = os.path.basename(file_path)
-            if file_name == "":
-                self.report({'ERROR'}, "Save the file before exporting")
-                return {'FINISHED'}
-            else:
-                #Remove the extension
-                file_name = os.path.splitext(file_name)[0]
-
-            #-END COMPROBATIONS -----------------
-
-
-            #Reset uvs of all objetcs in rooms
-            material = create_material_with_texture()
-
-            #Sets materials
-            for obj in bpy.data.collections["rooms"].objects:
-                bpy.context.view_layer.objects.active = obj
-                bpy.ops.object.mode_set(mode='EDIT')
-                bpy.ops.mesh.select_all(action='SELECT')
-                bpy.ops.uv.reset()
-                bpy.ops.object.mode_set(mode='OBJECT')
-
-                #Adds material to the object
-                
-                if len(obj.data.materials) > 0:
-                    obj.data.materials[0] = material
-                else:
-                    obj.data.materials.append(material)
-            
-            #Sets raycast material
-            raycast_material = create_raycast_material()
-
-            if len(bpy.data.collections["raycast"].objects[0].data.materials ) > 0:
-                    bpy.data.collections["raycast"].objects[0].data.materials[0] = raycast_material
-            else:
-                bpy.data.collections["raycast"].objects[0].data.materials.append(raycast_material)
-
-            #Take screenshots
-            rooms_screenshot(self,context)
-            raycast_screenshot(self,context)
-            restoreView_and_save(self,context)
-
-            # #Show all collections
-            for collection in bpy.data.collections:
-                collection.hide_viewport = False
-
-            #Deselect all objects
-            for obj in bpy.data.objects:
-                obj.select_set(False)
-                # bpy.ops.object.select_all(action='DESELECT')    
-
-            #Select raycast and rooms objects
-            for obj in bpy.data.collections["rooms"].objects:
-                obj.select_set(True)
-            bpy.data.collections["raycast"].objects[0].select_set(True)
-
-            bpy.ops.export_scene.gltf(  filepath=os.path.join(basedir+'Hotel_'+filename+'_rooms'),
-                                        check_existing=False,
-                                        # export_import_convert_lighting_mode='SPEC',
-                                        # gltf_export_id='', 
-                                        # export_use_gltfpack=False, 
-                                        # export_gltfpack_tc=True,
-                                        # export_gltfpack_tq=8, 
-                                        # export_gltfpack_si=1.0, 
-                                        # export_gltfpack_sa=False, 
-                                        # export_gltfpack_slb=False, 
-                                        # export_gltfpack_vp=14, 
-                                        # export_gltfpack_vt=12, 
-                                        # export_gltfpack_vn=8, 
-                                        # export_gltfpack_vc=8, 
-                                        # export_gltfpack_vpi='Integer', 
-                                        # export_gltfpack_noq=True, 
-                                        export_format='GLB', 
-                                        # ui_tab='GENERAL', 
-                                        # export_copyright='', 
-                                        export_image_format='AUTO', 
-                                        export_image_add_webp=False, 
-                                        export_image_webp_fallback=False, 
-                                        export_texture_dir='', 
-                                        export_jpeg_quality=75, 
-                                        export_image_quality=75, 
-
-                                        export_keep_originals=False, 
-                                        export_texcoords=True, 
-                                        export_normals=False, 
-                                        export_gn_mesh=False, 
-
-                                        export_draco_mesh_compression_enable=False, 
-                                        export_draco_mesh_compression_level=6, 
-                                        export_draco_position_quantization=14, 
-                                        export_draco_normal_quantization=10, 
-                                        export_draco_texcoord_quantization=12, 
-                                        export_draco_color_quantization=10, 
-                                        export_draco_generic_quantization=12, 
-
-                                        export_tangents=False, 
-                                        export_materials='NONE', 
-                                        export_unused_images=False, 
-                                        export_unused_textures=False, 
-                                        export_vertex_color='MATERIAL', 
-                                        export_all_vertex_colors=False, 
-                                        export_active_vertex_color_when_no_material=True, 
-                                        export_attributes=False, 
-                                        use_mesh_edges=False, 
-                                        use_mesh_vertices=False, 
-                                        export_cameras=False, 
-                                        use_selection=True, 
-                                        use_visible=False, 
-                                        use_renderable=False, 
-                                        use_active_collection_with_nested=False, 
-                                        use_active_collection=False, 
-                                        use_active_scene=False, 
-                                        collection='', 
-                                        at_collection_center=False, 
-                                        export_extras=False, 
-                                        export_yup=True, 
-                                        export_apply=True, 
-                                        export_shared_accessors=False, 
-                                        export_animations=False, 
-                                        export_frame_range=False, 
-                                        export_frame_step=1, 
-                                        export_force_sampling=False, 
-                                        export_pointer_animation=False, 
-                                        export_animation_mode='ACTIONS', 
-                                        export_nla_strips_merged_animation_name='Animation', 
-                                        export_def_bones=False, 
-                                        export_hierarchy_flatten_bones=False, 
-                                        export_hierarchy_flatten_objs=False, 
-                                        export_armature_object_remove=False, 
-                                        export_leaf_bone=False, 
-                                        export_optimize_animation_size=False, 
-                                        export_optimize_animation_keep_anim_armature=False, 
-                                        export_optimize_animation_keep_anim_object=False, 
-                                        export_optimize_disable_viewport=False, 
-                                        export_negative_frame='SLIDE', 
-                                        export_anim_slide_to_zero=False, 
-                                        export_bake_animation=False, 
-                                        export_anim_single_armature=False, 
-                                        export_reset_pose_bones=False, 
-                                        export_current_frame=False, 
-                                        export_rest_position_armature=False, 
-                                        export_anim_scene_split_object=False, 
-                                        export_skins=False, 
-                                        export_influence_nb=4, 
-                                        export_all_influences=False, 
-                                        export_morph=False, 
-                                        export_morph_normal=False, 
-                                        export_morph_tangent=False, 
-                                        export_morph_animation=False, 
-                                        export_morph_reset_sk_data=False, 
-                                        export_lights=False, 
-                                        export_try_sparse_sk=False, 
-                                        export_try_omit_sparse_sk=False, 
-                                        export_gpu_instances=False, 
-                                        export_action_filter=False, 
-                                        export_convert_animation_pointer=False, 
-                                        export_nla_strips=False, 
-                                        export_original_specular=False, 
-                                        will_save_settings=False, 
-                                        export_hierarchy_full_collections=False, 
-                                        export_extra_animations=False, 
-                                        filter_glob='*.glb',)
-    
-            self.report({'INFO'}, "Exported to " + bpy.context.scene.folder + file_name+".glb")
-            return {'FINISHED'}
         else:
-                    if is_collection_empty(self,context,'rooms'):
-                        self.report({'ERROR'}, "No rooms, please move the rooms to the collection 'rooms'")
-                    if is_collection_empty(self,context,'rooms'):
-                        return {'FINISHED'}
+                       #raycast Screenshot
+                                        
+                                        
+            # Set up the raycast Screenshot conditions
+            for window in bpy.context.window_manager.windows:
+                for area in window.screen.areas: # iterate through areas in current screen
+                    if area.type == 'VIEW_3D':
+                        for space in area.spaces: # iterate through spaces in current VIEW_3D area
+                            if space.type == 'VIEW_3D': # check if space is a 3D view
+                                space.shading.type = 'SOLID'
+                                space.shading.light = 'FLAT'
+                                space.shading.color_type =  'TEXTURE'
+                                space.overlay.show_overlays = True
+                        # Set overlay properties
+                                space.overlay.grid_lines = 0
+                                space.overlay.show_axis_x = False      
+                                space.overlay.show_axis_y = False    
+                                space.overlay.show_axis_z = False   
+                                space.overlay.show_cursor = False
+                                space.overlay.show_floor = False
+                                space.overlay.show_object_origins = False
+                                space.overlay.show_outline_selected = False
+                                space.overlay.show_stats = False
+                                space.overlay.show_statvis = False
+                                space.shading.show_xray = True
+                                
 
-                        #file save check
-                    file_path = bpy.path.basename(bpy.context.blend_data.filepath)
-                    file_name = os.path.basename(file_path)
-                    if file_name == "":
-                            self.report({'ERROR'}, "Save the file before exporting")
-                            return {'FINISHED'}
-                    else:
-                            #Remove the extension
-                            file_name = os.path.splitext(file_name)[0]
+            # Hide the rooms
+            bpy.context.view_layer.layer_collection.children["raycast"].hide_viewport = False
+            bpy.context.view_layer.layer_collection.children["Collection"].hide_viewport = False
+            for collection in collections:
+                if collection.name == rooms:
+                    collection.hide_viewport = True
+                    
+            #Set the raycast to show wireframe
+            bpy.data.objects["raycast"].select_set(True)
+            # to select the object in the 3D viewport,
 
-                        #-END COMPROBATIONS -----------------
+            current_state = bpy.data.objects["raycast"].select_get()
+            # retrieving the current state
 
+            # this way you can also select multiple objects
 
-                        #Reset uvs of all objetcs in rooms
-                    material = create_material_with_texture()
+            bpy.context.view_layer.objects.active = bpy.data.objects['raycast']
+            # Show wireframe of the active object
+            bpy.context.object.show_wire = True
 
-                        #Sets materials
-                    for obj in bpy.data.collections["rooms"].objects:
-                            bpy.context.view_layer.objects.active = obj
-                            bpy.ops.object.mode_set(mode='EDIT')
-                            bpy.ops.mesh.select_all(action='SELECT')
-                            bpy.ops.uv.reset()
-                            bpy.ops.object.mode_set(mode='OBJECT')
+            # Deselect all objects
+            bpy.ops.object.select_all(action='DESELECT')  
 
-                            #Adds material to the object
-                            
-                    if len(obj.data.materials) > 0:
-                                obj.data.materials[0] = material
-                    else:
-                                obj.data.materials.append(material)
+            # Take Screenshot for raycast
+            bpy.context.scene.render.filepath = os.path.join(basedir+'Screenshot_'+filename+'_raycast');
+            bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=True, view_context=True);
             
-                        #Take screenshots
-                    rooms_screenshot(self,context)
-                    restoreView_and_save(self,context)
+                                       
+                                    
+                                                #rooms Screenshot
+                                                
+                                                
+            # Set up the rooms Screenshot conditions
+            for window in bpy.context.window_manager.windows:
+                for area in window.screen.areas: # iterate through areas in current screen
+                    if area.type == 'VIEW_3D':
+                        for space in area.spaces: # iterate through spaces in current VIEW_3D area
+                            if space.type == 'VIEW_3D': # check if space is a 3D view
+                                space.shading.type = 'SOLID'
+                                space.shading.light = 'FLAT'
+                                space.shading.color_type =  'TEXTURE'
+                                space.shading.show_xray = False
+                                space.overlay.show_overlays = True
+                        # Set overlay properties
+                                space.overlay.grid_lines = 0
+                                space.overlay.show_axis_x = False      
+                                space.overlay.show_axis_y = False    
+                                space.overlay.show_axis_z = False   
+                                space.overlay.show_cursor = False
+                                space.overlay.show_floor = False
+                                space.overlay.show_object_origins = False
+                                space.overlay.show_outline_selected = False
+                                space.overlay.show_stats = False
+                                space.overlay.show_statvis = False
 
-                        # #Show all collections
-                    for collection in bpy.data.collections:
-                            collection.hide_viewport = False
+            # Hide the raycast
+            bpy.context.view_layer.layer_collection.children["rooms"].hide_viewport = False
+            bpy.context.view_layer.layer_collection.children["Collection"].hide_viewport = False
+            for collection in collections:
+                if collection.name == raycast :
+                    collection.hide_viewport = True
+                    
+            # Take Screenshot for rooms
+            bpy.context.scene.render.filepath = os.path.join(basedir+'Screenshot_'+filename+'_rooms');
+            bpy.ops.render.opengl(animation=False, render_keyed_only=False, sequencer=False, write_still=True, view_context=True);              
+                                    
+                                                
+                                            #Purge Unused data blocks
 
-                        #Deselect all objects
-                    for obj in bpy.data.objects:
-                            obj.select_set(False)
-                            # bpy.ops.object.select_all(action='DESELECT')    
+        for block in bpy.data.meshes:
+            if block.users == 0:
+                bpy.data.meshes.remove(block)
 
-                        #Select rooms objects
-                    for obj in bpy.data.collections["rooms"].objects:
-                            obj.select_set(True)
+        for block in bpy.data.materials:
+            if block.users == 0:
+                bpy.data.materials.remove(block)
 
-                    bpy.ops.export_scene.gltf(  filepath=os.path.join(basedir+'Hotel_'+filename+'_rooms'),
+        for block in bpy.data.textures:
+            if block.users == 0:
+                bpy.data.textures.remove(block)
+
+        for block in bpy.data.images:
+            if block.users == 0:
+                bpy.data.images.remove(block)
+                
+        for block in bpy.data.curves:
+            if block.users == 0:
+                bpy.data.curves.remove(block)
+                
+        for block in bpy.data.lights:
+            if block.users == 0:
+                bpy.data.lights.remove(block)
+                
+        for block in bpy.data.cameras:
+            if block.users == 0:
+                bpy.data.cameras.remove(block)
+                     
+                
+
+                                #Export to GLB file
+        # Hide the Hotel model
+        if coll is None:
+            bpy.context.view_layer.layer_collection.children["rooms"].hide_viewport = False
+            for collection in collections:
+                if collection.name == Collection:
+                    collection.hide_viewport = True
+
+            # Select all objects
+            bpy.ops.object.select_all(action='SELECT')    
+
+            #Change viewport to Object mode
+            for window in bpy.context.window_manager.windows:
+                for area in window.screen.areas: # iterate through areas in current screen
+                    if area.type == 'VIEW_3D':
+                        for space in area.spaces: # iterate through spaces in current VIEW_3D area
+                            if space.type == 'VIEW_3D': # check if space is a 3D view
+                                space.shading.type = 'SOLID'
+
+            # Export the Model to GLB file
+            bpy.ops.export_scene.gltf(  filepath=os.path.join(basedir+'Hotel_'+filename+'_rooms'),
                                                     check_existing=False,
                                                     # export_import_convert_lighting_mode='SPEC',
                                                     # gltf_export_id='', 
@@ -934,9 +880,170 @@ class export_mirai(bpy.types.Operator):
                                                     export_hierarchy_full_collections=False, 
                                                     export_extra_animations=False, 
                                                     filter_glob='*.glb',)
-                        
-                    self.report({'INFO'}, "Exported to " + bpy.context.scene.folder + file_name+".glb")
-                    return {'FINISHED'}
+         
+        else:
+            bpy.context.view_layer.layer_collection.children["raycast"].hide_viewport = False
+            bpy.context.view_layer.layer_collection.children["rooms"].hide_viewport = False
+            for collection in collections:
+                if collection.name == Collection:
+                    collection.hide_viewport = True
+
+            # Select all objects
+            bpy.ops.object.select_all(action='SELECT')    
+
+            #Change viewport to Object mode
+            for window in bpy.context.window_manager.windows:
+                for area in window.screen.areas: # iterate through areas in current screen
+                    if area.type == 'VIEW_3D':
+                        for space in area.spaces: # iterate through spaces in current VIEW_3D area
+                            if space.type == 'VIEW_3D': # check if space is a 3D view
+                                space.shading.type = 'SOLID'
+
+            # Export the Model to GLB file
+            bpy.ops.export_scene.gltf(  filepath=os.path.join(basedir+'Hotel_'+filename+'_rooms'),
+                                                    check_existing=False,
+                                                    # export_import_convert_lighting_mode='SPEC',
+                                                    # gltf_export_id='', 
+                                                    # export_use_gltfpack=False, 
+                                                    # export_gltfpack_tc=True,
+                                                    # export_gltfpack_tq=8, 
+                                                    # export_gltfpack_si=1.0, 
+                                                    # export_gltfpack_sa=False, 
+                                                    # export_gltfpack_slb=False, 
+                                                    # export_gltfpack_vp=14, 
+                                                    # export_gltfpack_vt=12, 
+                                                    # export_gltfpack_vn=8, 
+                                                    # export_gltfpack_vc=8, 
+                                                    # export_gltfpack_vpi='Integer', 
+                                                    # export_gltfpack_noq=True, 
+                                                    export_format='GLB', 
+                                                    # ui_tab='GENERAL', 
+                                                    # export_copyright='', 
+                                                    export_image_format='AUTO', 
+                                                    export_image_add_webp=False, 
+                                                    export_image_webp_fallback=False, 
+                                                    export_texture_dir='', 
+                                                    export_jpeg_quality=75, 
+                                                    export_image_quality=75, 
+
+                                                    export_keep_originals=False, 
+                                                    export_texcoords=True, 
+                                                    export_normals=False, 
+                                                    export_gn_mesh=False, 
+
+                                                    export_draco_mesh_compression_enable=False, 
+                                                    export_draco_mesh_compression_level=6, 
+                                                    export_draco_position_quantization=14, 
+                                                    export_draco_normal_quantization=10, 
+                                                    export_draco_texcoord_quantization=12, 
+                                                    export_draco_color_quantization=10, 
+                                                    export_draco_generic_quantization=12, 
+
+                                                    export_tangents=False, 
+                                                    export_materials='NONE', 
+                                                    export_unused_images=False, 
+                                                    export_unused_textures=False, 
+                                                    export_vertex_color='MATERIAL', 
+                                                    export_all_vertex_colors=False, 
+                                                    export_active_vertex_color_when_no_material=True, 
+                                                    export_attributes=False, 
+                                                    use_mesh_edges=False, 
+                                                    use_mesh_vertices=False, 
+                                                    export_cameras=False, 
+                                                    use_selection=True, 
+                                                    use_visible=False, 
+                                                    use_renderable=False, 
+                                                    use_active_collection_with_nested=False, 
+                                                    use_active_collection=False, 
+                                                    use_active_scene=False, 
+                                                    collection='', 
+                                                    at_collection_center=False, 
+                                                    export_extras=False, 
+                                                    export_yup=True, 
+                                                    export_apply=True, 
+                                                    export_shared_accessors=False, 
+                                                    export_animations=False, 
+                                                    export_frame_range=False, 
+                                                    export_frame_step=1, 
+                                                    export_force_sampling=False, 
+                                                    export_pointer_animation=False, 
+                                                    export_animation_mode='ACTIONS', 
+                                                    export_nla_strips_merged_animation_name='Animation', 
+                                                    export_def_bones=False, 
+                                                    export_hierarchy_flatten_bones=False, 
+                                                    export_hierarchy_flatten_objs=False, 
+                                                    export_armature_object_remove=False, 
+                                                    export_leaf_bone=False, 
+                                                    export_optimize_animation_size=False, 
+                                                    export_optimize_animation_keep_anim_armature=False, 
+                                                    export_optimize_animation_keep_anim_object=False, 
+                                                    export_optimize_disable_viewport=False, 
+                                                    export_negative_frame='SLIDE', 
+                                                    export_anim_slide_to_zero=False, 
+                                                    export_bake_animation=False, 
+                                                    export_anim_single_armature=False, 
+                                                    export_reset_pose_bones=False, 
+                                                    export_current_frame=False, 
+                                                    export_rest_position_armature=False, 
+                                                    export_anim_scene_split_object=False, 
+                                                    export_skins=False, 
+                                                    export_influence_nb=4, 
+                                                    export_all_influences=False, 
+                                                    export_morph=False, 
+                                                    export_morph_normal=False, 
+                                                    export_morph_tangent=False, 
+                                                    export_morph_animation=False, 
+                                                    export_morph_reset_sk_data=False, 
+                                                    export_lights=False, 
+                                                    export_try_sparse_sk=False, 
+                                                    export_try_omit_sparse_sk=False, 
+                                                    export_gpu_instances=False, 
+                                                    export_action_filter=False, 
+                                                    export_convert_animation_pointer=False, 
+                                                    export_nla_strips=False, 
+                                                    export_original_specular=False, 
+                                                    will_save_settings=False, 
+                                                    export_hierarchy_full_collections=False, 
+                                                    export_extra_animations=False, 
+                                                    filter_glob='*.glb',)
+         # Restore Overlay
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas: # iterate through areas in current screen
+                if area.type == 'VIEW_3D':
+                    for space in area.spaces: # iterate through spaces in current VIEW_3D area
+                        if space.type == 'VIEW_3D': # check if space is a 3D view
+                            space.shading.type = 'SOLID'
+                            space.shading.light = 'FLAT'
+                            space.shading.color_type =  'TEXTURE'
+                            space.overlay.show_overlays = True
+                    # Set overlay properties
+                            space.overlay.show_cursor = True
+                            space.overlay.show_object_origins = True
+                            space.overlay.show_outline_selected = True
+                            space.shading.show_xray = False
+         
+         
+        # Pack all resources
+         
+        bpy.ops.file.pack_all()
+         
+        # Unhide all
+        def get_outliner_area():
+            if bpy.context.area.type!='OUTLINER':
+                for area in bpy.context.screen.areas:
+                    if area.type == 'OUTLINER':
+                        return area
+
+        area = get_outliner_area()
+        region = next(region for region in area.regions if region.type == "WINDOW")
+
+        with bpy.context.temp_override(area=area, reigon=region):
+            bpy.ops.outliner.unhide_all()
+            
+            # save blend
+        bpy.ops.wm.save_mainfile()
+
+        return {'FINISHED'}            # Lets Blender know the operator finished successfully.
 
 class fix_rooms(bpy.types.Operator):
         bl_label = "Fix rooms"
